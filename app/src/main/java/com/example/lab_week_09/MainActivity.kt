@@ -1,6 +1,7 @@
 package com.example.lab_week_09
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -18,13 +19,24 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.*
-import androidx.navigation.navArgument
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
 import com.example.lab_week_09.ui.theme.OnBackgroundTitleText
 import com.example.lab_week_09.ui.theme.PrimaryTextButton
 import com.example.lab_week_09.ui.theme.OnBackgroundItemText
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+
+// Moshi instance for JSON parsing
+val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+
+// Adapter to parse List of Student objects
+val jsonAdapter = moshi.adapter(List::class.java)
+
+// Adapter for List<Student> and the Student object itself
+val studentListAdapter = moshi.adapter(List::class.java).nullSafe()
 
 // Student data model
 data class Student(var name: String)
@@ -64,14 +76,50 @@ fun App(navController: NavHostController) {
             "resultContent/?listData={listData}",
             arguments = listOf(navArgument("listData") { type = NavType.StringType })
         ) {
+            // Pass the JSON string to ResultContent
             ResultContent(it.arguments?.getString("listData").orEmpty())
         }
     }
 }
 
 @Composable
+fun ResultContent(listData: String) {
+    // Decode the JSON string into a list of students
+    val decodedList = try {
+        val jsonAdapter = moshi.adapter(List::class.java)
+        val list = jsonAdapter.fromJson(listData)?.filterIsInstance<Student>() ?: emptyList<Student>()
+
+        // Log the decoded list to verify the data
+        Log.d("ResultContent", "Decoded list: $list") // Log the decoded list
+
+        list
+    } catch (e: Exception) {
+        Log.e("ResultContent", "Error decoding JSON: ${e.message}")
+        emptyList<Student>()  // Return an empty list if decoding fails
+    }
+
+    Column(
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Check if the decoded list is empty
+        if (decodedList.isEmpty()) {
+            Text("No data available")  // Show a message if the list is empty
+        } else {
+            LazyColumn {
+                items(decodedList) { item ->
+                    OnBackgroundItemText(text = item.name) // Access name from Student object
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
 fun Home(navigateFromHomeToResult: (String) -> Unit) {
-    // Create a mutable state list to store the students
     val listData = remember {
         mutableStateListOf(
             Student("Tanu"),
@@ -79,10 +127,8 @@ fun Home(navigateFromHomeToResult: (String) -> Unit) {
             Student("Tono")
         )
     }
-    // Create a mutable state to hold the input value
     var inputField by remember { mutableStateOf(Student("")) }
 
-    // Call HomeContent and pass the listData, inputField, and handlers
     HomeContent(
         listData = listData,
         inputField = inputField,
@@ -94,10 +140,15 @@ fun Home(navigateFromHomeToResult: (String) -> Unit) {
             }
         },
         navigateFromHomeToResult = {
-            navigateFromHomeToResult(listData.toList().toString())
+            // Convert the listData to JSON and log it for debugging
+            val json = jsonAdapter.toJson(listData)
+            Log.d("Home", "Passing JSON: $json")  // Log the JSON
+            navigateFromHomeToResult(json)
         }
     )
 }
+
+
 
 @Composable
 fun HomeContent(
@@ -113,18 +164,16 @@ fun HomeContent(
                 modifier = Modifier.padding(16.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Display title using custom UI element
                 OnBackgroundTitleText(text = stringResource(id = R.string.enter_item))
 
-                // Input field for the student's name
+                // Handle TextField input
                 TextField(
-                    value = inputField.name,
+                    value = inputField.name, // Access name from Student object
                     onValueChange = onInputValueChange,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 )
 
-                // Buttons for submit and navigate to result
                 Row {
                     PrimaryTextButton(text = stringResource(id = R.string.button_click)) {
                         onButtonClick()
@@ -147,19 +196,6 @@ fun HomeContent(
                 OnBackgroundItemText(text = item.name)
             }
         }
-    }
-}
-
-@Composable
-fun ResultContent(listData: String) {
-    // Display the result content (the listData received from the Home composable)
-    Column(
-        modifier = Modifier
-            .padding(vertical = 4.dp)
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        OnBackgroundItemText(text = listData)
     }
 }
 
