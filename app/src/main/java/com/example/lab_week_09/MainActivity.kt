@@ -17,11 +17,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
+import com.example.lab_week_09.ui.theme.OnBackgroundTitleText
+import com.example.lab_week_09.ui.theme.PrimaryTextButton
+import com.example.lab_week_09.ui.theme.OnBackgroundItemText
 
-// Declare a data class called Student
-data class Student(
-    var name: String
-)
+data class Student(var name: String)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,6 +49,7 @@ fun Home() {
             Student("Tono")
         )
     }
+
     // Create a mutable state to hold the input value
     var inputField by remember { mutableStateOf(Student("")) }
 
@@ -79,26 +80,32 @@ fun HomeContent(
                 modifier = Modifier.padding(16.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = stringResource(id = R.string.enter_item)) // Instruction Text
+                // Call the OnBackgroundTitleText UI Element
+                OnBackgroundTitleText(text = stringResource(id = R.string.enter_item))
+
+                // Use TextField for user input
                 TextField(
-                    value = inputField.name, // Bind to inputField
-                    onValueChange = onInputValueChange, // Update input value
+                    value = inputField.name,
+                    onValueChange = onInputValueChange,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 )
 
-                Button(onClick = onButtonClick) {
-                    Text(text = stringResource(id = R.string.button_click)) // Submit Button
+                // Call the PrimaryTextButton UI Element
+                PrimaryTextButton(text = stringResource(id = R.string.button_click)) {
+                    onButtonClick()
                 }
             }
         }
 
+        // Loop through the listData and display each student's name
         items(listData) { item ->
             Column(
                 modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = item.name) // Display each student's name
+                // Call the OnBackgroundItemText UI Element
+                OnBackgroundItemText(text = item.name)
             }
         }
     }
