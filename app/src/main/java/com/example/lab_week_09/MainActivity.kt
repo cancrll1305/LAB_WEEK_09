@@ -4,13 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -18,6 +17,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
+
+// Declare a data class called Student
+data class Student(
+    var name: String
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,8 +32,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val list = listOf("Tanu", "Tina", "Tono")
-                    Home(items = list)  // Passing the list to the Home composable
+                    Home()  // Pass nothing, as the state is managed within Home composable now
                 }
             }
         }
@@ -37,51 +40,72 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Home(
-    items: List<String>  // Define a parameter to pass the list of items
+fun Home() {
+    // Create a mutable state list to store the students
+    val listData = remember {
+        mutableStateListOf(
+            Student("Tanu"),
+            Student("Tina"),
+            Student("Tono")
+        )
+    }
+    // Create a mutable state to hold the input value
+    var inputField by remember { mutableStateOf(Student("")) }
+
+    // Call HomeContent and pass the listData, inputField, and handlers
+    HomeContent(
+        listData = listData,
+        inputField = inputField,
+        onInputValueChange = { newInput -> inputField = inputField.copy(name = newInput) },
+        onButtonClick = {
+            if (inputField.name.isNotBlank()) {
+                listData.add(inputField)  // Add the input to the list
+                inputField = Student("")  // Reset the input field
+            }
+        }
+    )
+}
+
+@Composable
+fun HomeContent(
+    listData: SnapshotStateList<Student>,
+    inputField: Student,
+    onInputValueChange: (String) -> Unit,
+    onButtonClick: () -> Unit
 ) {
-    // LazyColumn for efficiently displaying the list of items
     LazyColumn {
         item {
             Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxSize(),
+                modifier = Modifier.padding(16.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = stringResource(id = R.string.enter_item)  // Display the string resource
-                )
-                // TextField for user input
-                BasicTextField(
-                    value = "",
-                    onValueChange = { /* Handle value change here */ },
+                Text(text = stringResource(id = R.string.enter_item)) // Instruction Text
+                TextField(
+                    value = inputField.name, // Bind to inputField
+                    onValueChange = onInputValueChange, // Update input value
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 )
 
-                // Button with an onClick event
-                Button(onClick = { /* Handle button click */ }) {
-                    Text(text = stringResource(id = R.string.button_click))
+                Button(onClick = onButtonClick) {
+                    Text(text = stringResource(id = R.string.button_click)) // Submit Button
                 }
             }
         }
 
-        // LazyColumn item to display the list of passed items
-        items(items) { item ->
+        items(listData) { item ->
             Column(
                 modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = item)  // Display each item in the list
+                Text(text = item.name) // Display each student's name
             }
         }
     }
 }
 
-// Preview function to show the Home composable with a sample list
 @Preview(showBackground = true)
 @Composable
 fun PreviewHome() {
-    Home(items = listOf("Tanu", "Tina", "Tono"))
+    Home() // Preview the Home composable
 }
